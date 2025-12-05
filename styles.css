@@ -1,0 +1,33 @@
+/* Additional custom styles for smoother UI */
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+input, button { outline: none; }
+button:active { transform: translateY(1px); }
+/* Small classified watermark top-left */
+body::before {
+  content: "CLASSIFIED MATERIAL";
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.06);
+  pointer-events: none;
+  transform: rotate(-12deg);
+  z-index: 60;
+  letter-spacing: 1px;
+}
+/* Small classified watermark bottom-right */
+body::after {
+  content: "CLASSIFIED MATERIAL";
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.06);
+  pointer-events: none;
+  transform: rotate(12deg);
+  z-index: 60;
+  letter-spacing: 1px;
+}
+/* Smooth animations */
+.fade-enter { opacity: 0; transform: translateY(6px); }
+.fade-enter-active { opacity: 1; transform: translateY(0); transition: all 320ms cubic-bezier(.2,.8,.2,1); }

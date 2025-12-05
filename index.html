@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CircuitRP DOJ Internal Site</title>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-900 text-white antialiased">
+  <div id="root"></div>
+
+  <!-- App source (JSX) -->
+  <script type="text/babel" data-presets="react">
+  // Main app - hash routing for GitHub Pages compatibility
+  const { useState, useEffect, useRef } = React;
+
+  function Header({ onNavigate }) {
+    return (
+      <header className="w-full bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between">
+        <div>
+          <div className="text-lg font-bold">CircuitRP Public Server — DOJ Internal Site</div>
+          <div className="text-xs text-slate-400">For authorized internal use only</div>
+        </div>
+        <nav className="flex gap-2 items-center">
+          <button className="px-3 py-2 rounded hover:bg-slate-700" onClick={() => (location.hash='#/')}>Welcome</button>
+          <button className="px-3 py-2 rounded hover:bg-slate-700" onClick={() => (location.hash='#/calc')}>DOJ Calc</button>
+          <button className="px-3 py-2 rounded hover:bg-slate-700" onClick={() => (location.hash='#/library')}>DOJ Library</button>
+        </nav>
+      </header>
+    );
+  }
+
+  function Footer() {
+    return (
+      <footer className="w-full bg-slate-800 border-t border-slate-700 p-3 text-xs flex justify-between items-center">
+        <div>© CircuitRP Public Server DOJ</div>
+        <div className="text-amber-300/80 px-2 py-1 rounded">CLASSIFIED MATERIAL — UNAUTHORIZED ACCESS PROHIBITED</div>
+      </footer>
+    );
+  }
+
+  // Welcome page
+  function Welcome() {
+    return (
+      <main className="p-6 max-w-4xl mx-auto">
+        <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 transform-gpu transition-all duration-600">
+          <h1 className="text-4xl font-extrabold mb-2">Welcome — CircuitRP DOJ Internal</h1>
+          <p className="text-slate-300 mb-4">This is a small internal toolkit for DOJ staff on the CircuitRP Public Server. Use the navigation above to open the Expungement Calculator or manage the DOJ Library of Google Docs.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-slate-900/40 rounded-lg border border-slate-700 hover:scale-[1.01] transition-transform">
+              <h3 className="font-semibold">DOJ Expungement Calculator</h3>
+              <p className="text-slate-300 text-sm">Interactive node-based calculator for estimating expungement fees.</p>
+              <div className="mt-3">
+                <button onClick={() => (location.hash='#/calc')} className="px-3 py-2 bg-amber-600 rounded">Open Calculator</button>
+              </div>
+            </div>
+            <div className="p-4 bg-slate-900/40 rounded-lg border border-slate-700 hover:scale-[1.01] transition-transform">
+              <h3 className="font-semibold">DOJ Library</h3>
+              <p className="text-slate-300 text-sm">Save and embed Google Doc links. Stored locally in your browser for privacy.</p>
+              <div className="mt-3">
+                <button onClick={() => (location.hash='#/library')} className="px-3 py-2 bg-cyan-600 rounded">Open Library</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Library page
+  function Library() {
+    const [items, setItems] = useState(() => {
+      try { return JSON.parse(localStorage.getItem('doj_library') || '[]'); } catch(e) { return []; }
+    });
+    const [title, setTitle] = useState('');
+    const [link, setLink] = useState('');
+    const [embedId, setEmbedId] = useState(null);
+
+    useEffect(() => {
+      localStorage.setItem('doj_library', JSON.stringify(items));
+    }, [items]);
+
+    function addItem() {
+      if(!link.trim()) return;
+      const newItem = { id: Date.now(), title: title || link, link };
+      setItems([newItem, ...items]);
+      setTitle(''); setLink('');
+    }
+
+    function removeItem(id) {
+      setItems(items.filter(i => i.id !== id));
+      if (embedId === id) setEmbedId(null);
+    }
+
+    // Try to extract Google doc embed URL (works for Google Docs/Sheets/Slides public links)
+    function getEmbedUrl(raw) {
+      try {
+        if (raw.includes('docs.google.com')) {
+          // convert to /preview if possible
+          if (raw.includes('/edit')) return raw.replace('/edit', '/preview');
+          if (raw.includes('/view')) return raw.replace('/view', '/preview');
+          return raw;
+        }
+        return raw;
+      } catch(e) { return raw; }
+    }
+
+    return (
+      <main className="p-6 max-w-5xl mx-auto">
+        <div className="bg-slate-900/40 p-6 rounded-xl border border-slate-700">
+          <h2 className="text-2xl font-bold mb-2">DOJ Library</h2>
+          <p className="text-slate-400 mb-4">Add Google Doc share links here. Set Docs to "Anyone with the link can view" to embed.</p>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Optional title" className="p-2 bg-slate-800 rounded border border-slate-700" />
+            <input value={link} onChange={e=>setLink(e.target.value)} placeholder="Google Doc share link or URL" className="p-2 bg-slate-800 rounded border border-slate-700 col-span-2" />
+          </div>
+
+          <div className="mt-3 flex gap-2">
+            <button onClick={addItem} className="px-3 py-2 bg-emerald-600 rounded">Add</button>
+            <button onClick={()=>{ setItems([]); localStorage.removeItem('doj_library'); }} className="px-3 py-2 bg-red-600 rounded">Clear All</button>
+          </div>
+
+          <div className="mt-6 grid gap-3">
+            {items.length === 0 && <div className="text-slate-400">No documents yet. Add a link above.</div>}
+            {items.map(item => (
+              <div key={item.id} className="p-3 bg-slate-900 rounded border border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-sm font-bold text-slate-200">{item.title.charAt(0).toUpperCase()}</div>
+                  <div>
+                    <div className="font-semibold">{item.title}</div>
+                    <div className="text-xs text-slate-400 truncate max-w-md">{item.link}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={()=>window.open(item.link,'_blank')} className="px-2 py-1 rounded bg-slate-700">Open</button>
+                  <button onClick={()=>setEmbedId(item.id)} className="px-2 py-1 rounded bg-cyan-600">Embed</button>
+                  <button onClick={()=>removeItem(item.id)} className="px-2 py-1 rounded bg-red-600">Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {embedId && (
+            <div className="mt-6 p-3 bg-slate-800 rounded border border-slate-700">
+              <div className="mb-2 font-semibold">Embedded Preview</div>
+              <div className="w-full h-[60vh] bg-black rounded overflow-hidden border border-slate-700">
+                <iframe title="embedded" src={getEmbedUrl(items.find(i=>i.id===embedId).link)} className="w-full h-full"></iframe>
+              </div>
+              <div className="mt-2 text-sm text-slate-400">If the preview is blank, ensure the document's sharing is set to "Anyone with the link can view".</div>
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
+
+  // DOJ Calculator component (adapted from uploaded HTML)
+  function DOJCalc() {
+    const [nodes, setNodes] = useState([]);
+    const [connections, setConnections] = useState([]);
+    const [dragging, setDragging] = useState(null);
+    const [connecting, setConnecting] = useState(null);
+    const [showAmountModal, setShowAmountModal] = useState(null);
+    const [amountInput, setAmountInput] = useState('1');
+    const [showCustomModal, setShowCustomModal] = useState(false);
+    const [customName, setCustomName] = useState('');
+    const [customPrice, setCustomPrice] = useState('1');
+    const [customColor, setCustomColor] = useState('#3b82f6');
+    const canvasRef = useRef(null);
+
+    useEffect(()=>{
+      const startingFee = { id: 1, type:'starting', x:120, y:120, value:2500, multiplier:1 };
+      const totalNode = { id: 2, type:'result', x:120, y:320, value:0, multiplier:1 };
+      setNodes([startingFee, totalNode]);
+      setConnections([{from:1,to:2,id:100}]);
+    },[]);
+
+    function addNode(type,x= Math.random()*300+40, y=Math.random()*150+40, value=0, multiplier=1){
+      if(type==='other'){ setShowCustomModal(true); setCustomName(''); setCustomPrice('1'); setCustomColor('#3b82f6'); return; }
+      if(type==='felony'||type==='misdemeanor'||type==='infraction'){ setShowAmountModal({type,x,y,value}); setAmountInput('1'); return; }
+      const newNode = { id: Date.now(), type, x, y, value, multiplier, customData:null };
+      setNodes(prev=>[...prev,newNode]);
+    }
+
+    function updateNodeValue(id,val){ setNodes(prev=>prev.map(n=> n.id===id?{...n,value:parseFloat(val)||0}:n)); }
+    function updateNodeMultiplier(id,m){ setNodes(prev=>prev.map(n=> n.id===id?{...n,multiplier:parseInt(m)||1}:n)); }
+    function deleteNode(id){ setNodes(prev=>prev.filter(n=>n.id!==id)); setConnections(prev=>prev.filter(c=>c.from!==id && c.to!==id)); }
+    function deleteConnection(connId){ setConnections(prev=>prev.filter(c=>c.id!==connId)); }
+
+    function handleMouseDown(e,nodeId){
+      if(e.target.tagName==='INPUT' || e.button!==0) return; e.stopPropagation();
+      const node = nodes.find(n=>n.id===nodeId);
+      if(connecting!==null && node.type==='result'){ endConnection(nodeId); return; }
+      setDragging(nodeId);
+    }
+
+    function handleMouseMove(e){
+      if(!dragging) return;
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left - 56;
+      const y = e.clientY - rect.top - 56;
+      setNodes(prev=>prev.map(n=> n.id===dragging?{...n,x,y}:n));
+    }
+    function handleMouseUp(){ setDragging(null); }
+
+    function handleConnect(nodeId){
+      const node = nodes.find(n=>n.id===nodeId);
+      if(node.type==='result') return;
+      if(connecting===null) setConnecting(nodeId);
+      else if(connecting!==nodeId) endConnection(nodeId);
+      else setConnecting(null);
+    }
+    function endConnection(nodeId){
+      if(connecting && connecting!==nodeId){
+        const exists=connections.some(c=>c.from===connecting && c.to===nodeId);
+        if(!exists) setConnections(prev=>[...prev,{from:connecting,to:nodeId,id:Date.now()}]);
+      }
+      setConnecting(null);
+    }
+
+    function confirmAddWithAmount(){
+      const amount = parseInt(amountInput)||1;
+      const newNode = { id: Date.now(), type: showAmountModal.type, x:showAmountModal.x, y:showAmountModal.y, value:showAmountModal.value, multiplier: amount };
+      setNodes(prev=>[...prev,newNode]); setShowAmountModal(null);
+    }
+    function confirmCustomNode(){
+      if(!customName.trim()) return;
+      const price = parseFloat(customPrice)||0;
+      const newNode = { id: Date.now(), type:'custom', x: Math.random()*300+40, y: Math.random()*150+40, value:price, multiplier:1, customData:{name:customName,color:customColor} };
+      setNodes(prev=>[...prev,newNode]); setShowCustomModal(false);
+    }
+
+    function formatCurrency(amount){
+      if(amount>=1000) return `$${(amount/1000).toFixed(1).replace(/\.0$/,'')}k`;
+      return `$${amount}`;
+    }
+
+    function calculateResult(nodeId){
+      const node = nodes.find(n=>n.id===nodeId); if(!node) return 0;
+      if(['felony','misdemeanor','infraction','starting','custom'].includes(node.type)) return node.value * node.multiplier;
+      if(node.type==='result'){
+        const inputs = connections.filter(c=>c.to===nodeId).map(c=> calculateResult(c.from) );
+        return inputs.reduce((a,b)=>a+b,0);
+      }
+      return 0;
+    }
+
+    function getNodeColor(type,customData=null){
+      if(type==='custom' && customData) return customData.color;
+      switch(type){
+        case 'felony': return '#dc2626'; case 'misdemeanor': return '#f97316'; case 'infraction': return '#f59e0b';
+        case 'starting': return '#334155'; case 'result': return '#f59e0b'; default: return '#0f172a';
+      }
+    }
+    function getNodeLabel(type,customData=null){
+      if(type==='custom' && customData) return customData.name;
+      switch(type){ case 'felony': return 'Felony'; case 'misdemeanor': return 'Misdemeanor'; case 'infraction': return 'Infraction'; case 'starting': return 'Starting Fee'; default: return ''; }
+    }
+
+    return (
+      <div className="flex-1 relative" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+        <div className="p-4 bg-slate-800 border-b border-slate-700 flex flex-wrap gap-2 items-center">
+          <div className="flex-1">
+            <div className="font-bold">DOJ Expungement Calculator</div>
+            <div className="text-slate-400 text-sm">Drag nodes, connect fees to the TOTAL node to sum up.</div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={()=>addNode('result')} className="px-3 py-2 bg-amber-600 rounded">Total</button>
+            <button onClick={()=>addNode('felony', undefined, undefined, 5000, 1)} className="px-3 py-2 bg-red-600 rounded">Felony ($5k)</button>
+            <button onClick={()=>addNode('misdemeanor', undefined, undefined, 2500, 1)} className="px-3 py-2 bg-orange-600 rounded">Misdemeanor ($2.5k)</button>
+            <button onClick={()=>addNode('infraction', undefined, undefined, 1000, 1)} className="px-3 py-2 bg-yellow-600 rounded">Infraction ($1k)</button>
+            <button onClick={()=>addNode('other')} className="px-3 py-2 bg-blue-600 rounded">Other</button>
+          </div>
+        </div>
+
+        <div ref={canvasRef} className="relative h-[calc(100vh-120px)] overflow-hidden bg-slate-950">
+          <svg className="absolute inset-0 w-full h-full pointer-events-auto" style={{ zIndex:0 }}>
+            <defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><polygon points="0 0, 12 6, 0 12" fill="#60a5fa"/></marker></defs>
+            {connections.map(conn => {
+              const from = nodes.find(n=>n.id===conn.from); const to = nodes.find(n=>n.id===conn.to);
+              if(!from||!to) return null;
+              const x1 = from.x + 56; const y1 = from.y + 112; const x2 = to.x + 56; const y2 = to.y;
+              const midY = (y1+y2)/2; const path = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+              return <g key={conn.id}><path d={path} stroke="#60a5fa" strokeWidth="8" fill="none" opacity="0.12"/><path d={path} stroke="#3b82f6" strokeWidth="3" fill="none" markerEnd="url(#arrow)"/><circle cx={(x1+x2)/2} cy={(y1+y2)/2} r="10" fill="#ef4444" onClick={(e)=>{e.stopPropagation(); deleteConnection(conn.id);}} className="cursor-pointer"/></g>;
+            })}
+          </svg>
+
+          {nodes.map(node => {
+            const isResult = node.type==='result'; const isFee = ['felony','misdemeanor','infraction','starting','custom'].includes(node.type);
+            const result = isResult? calculateResult(node.id) : null;
+            const bg = getNodeColor(node.type,node.customData);
+            return (
+              <div key={node.id} className="absolute w-40 h-40 rounded-xl shadow-xl cursor-move flex flex-col items-center justify-center border-2" style={{ left: node.x, top: node.y, backgroundColor: bg, borderColor: connecting===node.id? '#fbbf24' : 'transparent', transition: 'transform .15s ease' }} onMouseDown={(e)=>handleMouseDown(e,node.id)}>
+                <button onClick={(e)=>{e.stopPropagation(); deleteNode(node.id);}} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full text-xs">×</button>
+                {isResult? (
+                  <>
+                    <div className="text-sm font-semibold">TOTAL</div>
+                    <div className="text-2xl font-bold">{formatCurrency(result)}</div>
+                    {connecting!==null && <div className="absolute -bottom-8 text-xs text-yellow-400 font-semibold animate-pulse">Click here to connect</div>}
+                  </>
+                ) : isFee? (
+                  <>
+                    <div className="text-xs font-semibold mb-1">{getNodeLabel(node.type,node.customData)}</div>
+                    {node.type==='custom'? (
+                      <div className="flex items-center gap-1"><span className="text-sm">$</span><input type="number" value={node.value} onChange={(e)=>{ updateNodeValue(node.id, e.target.value); }} className="w-20 text-center bg-black bg-opacity-30 rounded px-1 py-0.5 text-sm font-bold" /></div>
+                    ) : (
+                      <div className="flex items-center gap-1"><span className="text-sm">$</span><input type="number" value={node.value/1000} onChange={(e)=> updateNodeValue(node.id, (parseFloat(e.target.value)||0)*1000)} className="w-12 text-center bg-black bg-opacity-30 rounded px-1 py-0.5 text-lg font-bold" /><span className="text-lg font-bold">k</span></div>
+                    )}
+                    <div className="flex items-center gap-1 mt-2"><input type="number" value={node.multiplier} onChange={(e)=> updateNodeMultiplier(node.id, e.target.value)} className="w-12 text-center bg-black bg-opacity-30 rounded px-1 py-0.5 text-sm font-bold" /><span className="text-sm font-bold">×</span></div>
+                  </>
+                ) : null}
+                {isFee && <button onClick={(e)=>{e.stopPropagation(); handleConnect(node.id);}} className={"absolute -bottom-8 px-3 py-1 rounded text-xs z-20 " + (connecting===node.id? 'bg-yellow-500':'bg-cyan-600')}>{connecting===node.id? 'Connecting...' : 'Connect'}</button>}
+              </div>
+            );
+          })}
+
+          {nodes.length <= 2 && (
+            <div className="absolute inset-0 flex items-center justify-center text-slate-400 pointer-events-none">
+              <div className="text-center">
+                <p className="text-xl mb-3">DOJ Expungement Fee Calculator</p>
+                <p className="text-sm mb-1">• Click preset buttons (Felony, Misdemeanor, Infraction)</p>
+                <p className="text-sm mb-1">• Enter the quantity when prompted</p>
+                <p className="text-sm mb-1">• Connect fees to the Total node to sum them up</p>
+              </div>
+            </div>
+          )}
+
+          {showCustomModal && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-6 rounded-lg shadow-xl w-96">
+                <h3 className="text-xl font-bold mb-4">Create Custom Fee</h3>
+                <label className="block text-sm font-semibold mb-2">Fee Name</label>
+                <input value={customName} onChange={e=>setCustomName(e.target.value)} className="w-full px-4 py-2 bg-slate-700 rounded mb-3"/>
+                <label className="block text-sm font-semibold mb-2">Price (in dollars)</label>
+                <input type="number" value={customPrice} onChange={e=>setCustomPrice(e.target.value)} className="w-full px-4 py-2 bg-slate-700 rounded mb-3"/>
+                <label className="block text-sm font-semibold mb-2">Color</label>
+                <input type="color" value={customColor} onChange={e=>setCustomColor(e.target.value)} className="w-16 h-10 rounded"/>
+                <div className="mt-4 flex gap-2">
+                  <button onClick={confirmCustomNode} className="flex-1 px-4 py-2 bg-emerald-600 rounded">Create</button>
+                  <button onClick={()=>setShowCustomModal(false)} className="flex-1 px-4 py-2 bg-slate-600 rounded">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showAmountModal && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-slate-800 p-6 rounded-lg shadow-xl">
+                <h3 className="text-xl font-bold mb-4">How many {showAmountModal && (showAmountModal.type==='felony'?'Felonies': showAmountModal.type==='misdemeanor'?'Misdemeanors':'Infractions')}?</h3>
+                <input type="number" value={amountInput} onChange={e=>setAmountInput(e.target.value)} min="1" className="w-full px-4 py-2 bg-slate-700 rounded text-lg text-center mb-4"/>
+                <div className="flex gap-2">
+                  <button onClick={confirmAddWithAmount} className="flex-1 px-4 py-2 bg-emerald-600 rounded">Add</button>
+                  <button onClick={()=>setShowAmountModal(null)} className="flex-1 px-4 py-2 bg-slate-600 rounded">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function App() {
+    const [route, setRoute] = useState(location.hash.replace('#','') || '/');
+    useEffect(()=>{
+      function onHash(){ setRoute(location.hash.replace('#','') || '/'); window.scrollTo(0,0); }
+      window.addEventListener('hashchange', onHash);
+      return ()=> window.removeEventListener('hashchange', onHash);
+    },[]);
+
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1">
+          {route === '/' && <Welcome />}
+          {route === '/calc' && <DOJCalc />}
+          {route === '/library' && <Library />}
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
